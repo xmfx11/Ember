@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit
 object NetworkModule {
 
     private const val EMBY_AUTH =
-        "MediaBrowser Client=\"Ember\", Device=\"Android\", DeviceId=\"Ember-Android-001\", Version=\"0.02\""
+        "MediaBrowser Client=\"Ember\", Device=\"Android\", DeviceId=\"Ember-Android-001\", Version=\"0.03\""
 
     // API 客户端（不跟随 302，保持请求纯净）
     fun createApiService(server: String): EmbyService {
