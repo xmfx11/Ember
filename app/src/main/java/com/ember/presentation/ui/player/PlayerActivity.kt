@@ -308,7 +308,7 @@ fun PlayerScreen(itemId: String, onBack: () -> Unit) {
                         if (!token.isNullOrEmpty()) {
                             headers["X-Emby-Token"] = token
                             headers["X-Emby-Authorization"] =
-                                "MediaBrowser Client=\"Ember\", Device=\"Android\", DeviceId=\"Ember-Android-001\", Version=\"0.03\""
+                                "MediaBrowser Client=\"Ember\", Device=\"Android\", DeviceId=\"Ember-Android-001\", Version=\"0.04\""
                         }
                         val httpFactory = DefaultHttpDataSource.Factory()
                             .setAllowCrossProtocolRedirects(true)

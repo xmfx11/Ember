@@ -23,6 +23,11 @@
 
         <activity
             android:name=".presentation.ui.login.LoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Ember" />
+
+        <activity
+            android:name=".presentation.ui.main.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.Ember">
             <intent-filter>
@@ -30,11 +35,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity
-            android:name=".presentation.ui.main.MainActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Ember" />
 
         <activity
             android:name=".presentation.ui.settings.SubSettingsActivity"

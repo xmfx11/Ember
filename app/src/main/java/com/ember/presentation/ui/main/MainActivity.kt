@@ -9,7 +9,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -61,7 +60,6 @@ fun MainScreen() {
     val navController = rememberNavController()
     val tabs = listOf(
         BottomTab(Screen.Home, "首页") { Icon(Icons.Default.Home, contentDescription = "首页") },
-        BottomTab(Screen.Sources, "媒体源") { Icon(Icons.Default.Hub, contentDescription = "媒体源") },
         BottomTab(Screen.Search, "搜索") { Icon(Icons.Default.Search, contentDescription = "搜索") },
         BottomTab(Screen.Settings, "设置") { Icon(Icons.Default.Settings, contentDescription = "设置") }
     )
@@ -135,6 +133,12 @@ fun MainScreen() {
             // 设置
             composable(Screen.Settings.route) {
                 SettingsScreen(
+                    onSourcesClick = { navController.navigate(Screen.Sources.route) },
+                    onEmbyLoginClick = {
+                        // 跳转登录页连接 Emby
+                        val intent = Intent(navController.context, com.ember.presentation.ui.login.LoginActivity::class.java)
+                        navController.context.startActivity(intent)
+                    },
                     onUpdateClick = { navController.navigate(Screen.Update.route) },
                     onLogsClick = { navController.navigate(Screen.Logs.route) }
                 )

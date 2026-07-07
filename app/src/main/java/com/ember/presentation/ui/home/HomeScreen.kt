@@ -67,7 +67,7 @@ fun HomeScreen(
                 is ListState.Error -> ErrorState(s.message)
                 is ListState.Success -> {
                     if (s.data.isEmpty()) {
-                        EmptyState("暂无媒体库，请到「媒体源」Tab 添加")
+                        EmptyState("暂无媒体库\n请到「设置 → 媒体源管理」添加 SMB/WebDAV/本地源\n或「设置 → Emby 服务器」连接 Emby")
                     } else {
                         LibraryGrid(s.data, onLibraryClick)
                     }

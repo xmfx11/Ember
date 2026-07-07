@@ -44,8 +44,9 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             val server = com.ember.data.local.TokenManager.getCachedServer()
             val userId = com.ember.data.local.TokenManager.getCachedUserId()
+            // 未连接 Emby 时返回空列表（不是错误），首页显示引导卡片
             if (server.isNullOrEmpty() || userId.isNullOrEmpty()) {
-                _viewsState.value = ListState.Error("未登录")
+                _viewsState.value = ListState.Success(emptyList())
                 return@launch
             }
             _viewsState.value = ListState.Loading
