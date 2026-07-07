@@ -176,13 +176,13 @@ fun PlayerScreen(itemId: String, onBack: () -> Unit) {
     }
 
     // ===== 起播速度优化 =====
-    // LoadControl: 减小 minBuffer 加快起播；保留较大 maxBuffer 保证流畅
+    // LoadControl: minBuffer=1s 加快起播；maxBuffer=30s 保证流畅；rebuffer=800ms 减少卡顿恢复时间
     // seekBack/Forward 增量 10s
     val exoPlayer = remember {
         try {
             val loadControl = com.google.android.exoplayer2.DefaultLoadControl.Builder()
-                .setBufferDurationsMs(1500, 30000, 500, 1000)
-                // minBuffer=1.5s（加快起播）, maxBuffer=30s, 播放需0.5s即可起, 重缓冲需1s
+                .setBufferDurationsMs(1000, 30000, 400, 800)
+                // minBuffer=1s（加快起播）, maxBuffer=30s, 播放需0.4s即可起, 重缓冲需0.8s
                 .setBackBuffer(30000, true)
                 .setPrioritizeTimeOverSizeThresholds(true)  // 优先时间阈值，加快起播
                 .build()
@@ -222,6 +222,11 @@ fun PlayerScreen(itemId: String, onBack: () -> Unit) {
     var gestureBrightness by remember { mutableStateOf(-1f) }  // 手势调节后的亮度
     var seekPreviewMs by remember { mutableStateOf<Long?>(null) }  // 拖动进度预览
     var seekPreviewDelta by remember { mutableStateOf(0L) }    // 拖动偏移量（正负）
+    var dragStartMs by remember { mutableLongStateOf(0L) }     // 拖动开始时的播放位置（固定基准，避免漂移）
+
+    // 水平拖动灵敏度：满屏拖动 = SEEK_RANGE_MS（120秒），更自然
+    // 不再映射整个 duration（拖满屏跳整片太激进）
+    val seekRangeMs = 120_000L
 
     val activity = context as? Activity
     val audioManager = remember { context.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager }
@@ -263,7 +268,7 @@ fun PlayerScreen(itemId: String, onBack: () -> Unit) {
                         if (!token.isNullOrEmpty()) {
                             headers["X-Emby-Token"] = token
                             headers["X-Emby-Authorization"] =
-                                "MediaBrowser Client=\"Ember\", Device=\"Android\", DeviceId=\"Ember-Android-001\", Version=\"0.01\""
+                                "MediaBrowser Client=\"Ember\", Device=\"Android\", DeviceId=\"Ember-Android-001\", Version=\"0.02\""
                         }
                         val httpFactory = DefaultHttpDataSource.Factory()
                             .setAllowCrossProtocolRedirects(true)
@@ -448,25 +453,25 @@ fun PlayerScreen(itemId: String, onBack: () -> Unit) {
 
                         val dx = change.position.x - startX
                         val dy = change.position.y - startY
-                        totalDeltaX = dx
-                        totalDeltaY = dy
 
                         // 判断是否进入拖动模式
                         if (!isDragging && (abs(dx) > 24 || abs(dy) > 24)) {
                             isDragging = true
                             if (!isLocked) {
+                                // 记录拖动开始的播放位置作为固定基准，避免轮询更新导致漂移
+                                dragStartMs = currentPosition
                                 seekPreviewMs = currentPosition
+                                seekPreviewDelta = 0L
                             }
                         }
 
                         if (isDragging && !isLocked && exoPlayer != null) {
-                            // 水平拖动 → 进度
+                            // 水平拖动 → 进度（基于固定基准 + 120s/屏灵敏度，更自然）
                             if (abs(dx) > abs(dy)) {
-                                val progressDelta = (dx / width) * duration.toFloat()
-                                val newPos = (currentPosition + progressDelta).toLong()
-                                    .coerceIn(0, duration)
+                                val deltaMs = (dx / width * seekRangeMs).toLong()
+                                val newPos = (dragStartMs + deltaMs).coerceIn(0, duration)
                                 seekPreviewMs = newPos
-                                seekPreviewDelta = newPos - currentPosition
+                                seekPreviewDelta = newPos - dragStartMs
                             } else {
                                 // 垂直拖动
                                 val isLeftHalf = startX < width / 2
@@ -860,16 +865,16 @@ private fun PlayerControls(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp)
+                .height(96.dp)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent)
+                        colors = listOf(Color.Black.copy(alpha = 0.75f), Color.Transparent)
                     )
                 )
                 .align(Alignment.TopCenter)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
@@ -899,7 +904,7 @@ private fun PlayerControls(
         // 中央播放控制
         Row(
             modifier = Modifier.align(Alignment.Center),
-            horizontalArrangement = Arrangement.spacedBy(48.dp),
+            horizontalArrangement = Arrangement.spacedBy(56.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onSeekBack, modifier = Modifier.size(56.dp)) {
@@ -907,16 +912,17 @@ private fun PlayerControls(
             }
             Surface(
                 shape = CircleShape,
-                color = Color.White.copy(alpha = 0.2f),
+                color = Color.White.copy(alpha = 0.18f),
+                shadowElevation = 8.dp,
                 onClick = onPlayPause,
-                modifier = Modifier.size(72.dp)
+                modifier = Modifier.size(80.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = "播放/暂停",
                         tint = Color.White,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(44.dp)
                     )
                 }
             }
@@ -932,10 +938,10 @@ private fun PlayerControls(
                 .align(Alignment.BottomCenter)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))
                     )
                 )
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             // 自定义进度条（带缓冲进度 + 拖动预览）
             CustomProgressBar(
@@ -1013,7 +1019,7 @@ private fun PlayerControls(
     }
 }
 
-// 自定义 Canvas 进度条：含缓冲进度、播放进度、拖动 thumb
+// 自定义 Canvas 进度条：含缓冲进度、播放进度、拖动 thumb（带动画放大）
 @Composable
 private fun CustomProgressBar(
     currentPosition: Long,
@@ -1024,13 +1030,29 @@ private fun CustomProgressBar(
     onSeekEnd: (Long) -> Unit
 ) {
     val barHeight = 4.dp
-    val thumbRadius = 7.dp
+    val thumbRadius = 6.dp
     val primaryColor = MaterialTheme.colorScheme.primary
     val bufferedColor = Color.White.copy(alpha = 0.3f)
     val trackColor = Color.White.copy(alpha = 0.15f)
 
     var isDragging by remember { mutableStateOf(false) }
     var dragX by remember { mutableFloatStateOf(0f) }
+
+    // thumb 半径动画：拖动时放大，有平滑过渡
+    val animatedThumbScale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isDragging) 1.5f else 1f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
+        ),
+        label = "thumbScale"
+    )
+    // 进度条高度动画：拖动时变粗，更醒目
+    val animatedBarScale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isDragging) 1.75f else 1f,
+        animationSpec = androidx.compose.animation.core.tween(200),
+        label = "barScale"
+    )
 
     val safeDuration = duration.coerceAtLeast(1L)
     val progress = (currentPosition.toFloat() / safeDuration).coerceIn(0f, 1f)
@@ -1039,7 +1061,7 @@ private fun CustomProgressBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(32.dp)  // 增大触摸区域
+            .height(36.dp)  // 增大触摸区域
             .pointerInput(duration) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
@@ -1078,8 +1100,8 @@ private fun CustomProgressBar(
             val canvasWidth = size.width
             val canvasHeight = size.height
             val centerY = canvasHeight / 2f
-            val barWidthPx = barHeight.value * density
-            val thumbRadiusPx = thumbRadius.value * density
+            val barWidthPx = barHeight.value * density * animatedBarScale
+            val thumbRadiusPx = thumbRadius.value * density * animatedThumbScale
 
             // 轨道（背景）
             drawRoundRect(
@@ -1107,11 +1129,19 @@ private fun CustomProgressBar(
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidthPx / 2f, barWidthPx / 2f)
             )
 
-            // thumb（拖动时显示）
+            // thumb（拖动时显示，带光晕）
             if (isDragging || progress > 0f) {
+                // 外圈光晕（拖动时）
+                if (isDragging) {
+                    drawCircle(
+                        color = primaryColor.copy(alpha = 0.25f),
+                        radius = thumbRadiusPx * 2f,
+                        center = Offset(canvasWidth * progress, centerY)
+                    )
+                }
                 drawCircle(
                     color = Color.White,
-                    radius = if (isDragging) thumbRadiusPx * 1.3f else thumbRadiusPx,
+                    radius = thumbRadiusPx,
                     center = Offset(canvasWidth * progress, centerY)
                 )
             }

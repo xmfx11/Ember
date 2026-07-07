@@ -9,7 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -61,8 +61,8 @@ fun MainScreen() {
     val navController = rememberNavController()
     val tabs = listOf(
         BottomTab(Screen.Home, "首页") { Icon(Icons.Default.Home, contentDescription = "首页") },
+        BottomTab(Screen.Sources, "媒体源") { Icon(Icons.Default.Hub, contentDescription = "媒体源") },
         BottomTab(Screen.Search, "搜索") { Icon(Icons.Default.Search, contentDescription = "搜索") },
-        BottomTab(Screen.Library, "媒体库") { Icon(Icons.Default.Movie, contentDescription = "媒体库") },
         BottomTab(Screen.Settings, "设置") { Icon(Icons.Default.Settings, contentDescription = "设置") }
     )
 

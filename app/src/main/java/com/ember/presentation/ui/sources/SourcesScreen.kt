@@ -86,9 +86,13 @@ fun SourcesScreen(
     // 开发中提示对话框
     var pendingDevType by remember { mutableStateOf<SourceType?>(null) }
 
-    BackScaffold(
-        title = "媒体源",
-        onBack = { navController.popBackStack() }
+    // 作为底部 Tab，不显示返回箭头；navController 仅用于跳转子页面
+    androidx.compose.material3.Scaffold(
+        topBar = {
+            androidx.compose.material3.TopAppBar(
+                title = { androidx.compose.material3.Text("媒体源") }
+            )
+        }
     ) { padding ->
         LazyColumn(
             modifier = Modifier
