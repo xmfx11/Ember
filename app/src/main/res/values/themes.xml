@@ -1,0 +1,7 @@
+<resources>
+    <!-- 使用 Material Components 提供的 Material3 主题，避免 AppCompatActivity/ComponentActivity 主题冲突崩溃 -->
+    <style name="Theme.Ember" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+</resources>

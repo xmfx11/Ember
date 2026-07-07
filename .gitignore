@@ -1,0 +1,18 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+*.apk
+*.keystore
+!ember.keystore
+
+# 构建产物
+/app/build/
+/app/.cxx/
+mise.toml
